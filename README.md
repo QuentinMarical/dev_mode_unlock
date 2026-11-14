@@ -26,7 +26,7 @@ Ce dépôt fournit un petit **script Python** qui analyse l'APK de l'app *Param�
 
 ## 🚀 Utilisation rapide
 
-**Prérequis** : **Python 3** (testé avec Python 3.12). Aucune dépendance à installer.
+**Prérequis** : **Python 3** (testé avec Python 3.12), ou la **version application Windows** qui n'a besoin de rien d'installé (voir plus bas).
 
 1. Récupérez l'**APK des Paramètres** de votre décodeur (voir ci-dessous).
 2. Lancez le script :
@@ -44,6 +44,27 @@ python dev_mode_unlock.py chemin/vers/TvSettings.apk
 3. Entrez le **numéro de série** si demandé → le script affiche le **code du mode développeur**.
 
 > 🔒 **Confidentialité** : le script fonctionne **entièrement hors ligne**. Il n'envoie aucune donnée sur Internet, et le numéro de série n'est utilisé que localement.
+
+---
+
+## 🪟 Version application Windows (sans Python)
+
+Une version **autonome** du script, écrite en **C# (.NET 10)**, se trouve dans [`app/DevModeUnlock`](app/DevModeUnlock). Elle produit les mêmes résultats que le script Python et s'utilise de la même façon. Elle se compile en **un seul fichier `dev_mode_unlock.exe`** (Windows 64 bits) qui embarque son runtime : ni Python ni .NET ne sont à installer sur le PC.
+
+Compiler l'exécutable (nécessite le [SDK .NET 10](https://dotnet.microsoft.com/download)) :
+
+```bash
+cd app/DevModeUnlock
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+```
+
+L'exécutable se trouve ensuite dans `app/DevModeUnlock/bin/Release/net10.0/win-x64/publish/`. Utilisation :
+
+```bash
+dev_mode_unlock.exe chemin/vers/TvSettings.apk
+```
+
+Les codes de sortie sont : `0` si un code a été trouvé, `1` sinon.
 
 ---
 
