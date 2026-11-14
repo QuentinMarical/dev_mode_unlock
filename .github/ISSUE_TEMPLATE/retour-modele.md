@@ -11,7 +11,7 @@ labels: retour
 **Version firmware :**
 
 **Cas affiché par le script :**
-(PIN calculé / code fixe / constante introuvable / code introuvable / aucun code)
+(PIN calculé / code fixe / constante introuvable / code introuvable / aucun code / numéro de série manquant / APK illisible)
 
 **Sortie complète du script :**
 ```

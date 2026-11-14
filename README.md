@@ -8,12 +8,14 @@ Ce dépôt fournit un petit **script Python** qui analyse l'APK de l'app *Param�
 
 > Projet d'interopérabilité, à usage strictement personnel sur son propre matériel.
 
+> 🍴 Ce dépôt est un **fork** de [dotkl3m/dev_mode_unlock](https://github.com/dotkl3m/dev_mode_unlock). Les issues et le formulaire de signalement pointent vers le dépôt d'origine.
+
 ---
 
 ## ✨ Fonctionnalités
 
 - Récupère automatiquement le secret depuis l'**APK des Paramètres** (`com.android.tv.settings`).
-- Gère **3 cas**, exactement comme le firmware :
+- Gère les cas suivants, comme le firmware :
   1. **Mot de passe calculé** — le code est dérivé du **numéro de série** (schéma **PBKDF2 + AES**).
   2. **Code fixe** — un PIN en dur est extrait directement de l'app.
   3. **Aucune protection** — activation par 7 clics, sans code.
@@ -23,6 +25,8 @@ Ce dépôt fournit un petit **script Python** qui analyse l'APK de l'app *Param�
 ---
 
 ## 🚀 Utilisation rapide
+
+**Prérequis** : **Python 3** (testé avec Python 3.12). Aucune dépendance à installer.
 
 1. Récupérez l'**APK des Paramètres** de votre décodeur (voir ci-dessous).
 2. Lancez le script :
@@ -38,6 +42,21 @@ python dev_mode_unlock.py chemin/vers/TvSettings.apk
 ```
 
 3. Entrez le **numéro de série** si demandé → le script affiche le **code du mode développeur**.
+
+> 🔒 **Confidentialité** : le script fonctionne **entièrement hors ligne**. Il n'envoie aucune donnée sur Internet, et le numéro de série n'est utilisé que localement.
+
+---
+
+## 🧾 Messages affichés par le script
+
+| Message affiché | Signification | Que faire |
+|---|---|---|
+| Code à 6 caractères (ex. `a1b2c3`) | Code calculé ou code fixe trouvé | Saisissez ce code dans le menu du mode développeur |
+| `(numéro de série manquant)` | Aucun numéro de série saisi | Relancez le script et saisissez le numéro de série |
+| `(constante introuvable)` | Protection par calcul détectée, mais la constante n'a pas été trouvée | Ouvrez une issue avec la sortie complète |
+| `(code introuvable)` | Un écran de code existe, mais le code n'a pas été trouvé | Ouvrez une issue avec la sortie complète |
+| `(aucun code)` | Aucune protection détectée | Activez le mode développeur par **7 clics** sur le numéro de build |
+| `APK illisible.` | Le fichier n'est pas une APK ou un zip valide | Vérifiez le fichier récupéré, puis réessayez |
 
 ---
 
@@ -107,7 +126,7 @@ Projet de **reverse engineering Android** :
 
 - Analyse du **bytecode DEX** (lecture de la table des chaînes, repérage des instructions `const-string`).
 - Extraction du secret et du schéma de dérivation depuis l'APK système.
-- **Cryptanalyse** du calcul du code : **PBKDF2-HMAC-SHA1** (salt `sdmc`, 10 000 itérations) → clé → **AES-256-ECB** → encodage Base64.
+- **Analyse de l'algorithme** du calcul du code : **PBKDF2-HMAC-SHA1** (salt `sdmc`, 10 000 itérations) → clé → **AES-256-ECB** → encodage Base64.
 - **Réimplémentation complète en Python pur**, sans dépendance.
 
 ---
@@ -116,8 +135,9 @@ Projet de **reverse engineering Android** :
 
 Outil fourni **à des fins d'interopérabilité et d'usage personnel**, à utiliser **uniquement sur votre propre décodeur**. Vous êtes seul responsable de l'usage que vous en faites. Ce projet n'est **affilié à aucun opérateur ni fabricant**.
 
----
 
-## 🔎 Mots-clés
+## 🧪 Tests
 
-`SFR Connect TV` · `Connect TV V2` · `Connect TV V3` · `mode développeur` · `developer mode` · `developer options` · `déblocage décodeur` · `unlock developer mode` · `Android TV` · `SDMC` · `décodeur SFR` · `box SFR` · `code PIN mode développeur` · `sans adb` · `X-plore` · `extraire APK` · `adb` · `reverse engineering` · `DEX` · `PBKDF2` · `AES` · `Python`
+```bash
+python -m unittest discover -s tests -v
+```

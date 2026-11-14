@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys, os, re, zipfile, struct, base64, hashlib
 
 AES_MARKER = b"Lcom/android/tv/settings/about/AESUtils;"
@@ -112,8 +113,8 @@ def _uleb(d, o):
     return r, o
 
 def dex_strings(d, cb=None):
-    if len(d) < 0x70:
-        return []
+    if len(d) < 0x70 or d[:4] != b'dex\n':
+        raise ValueError("en-tête DEX invalide ou fichier trop court")
     n = struct.unpack_from('<I', d, 0x38)[0]
     off = struct.unpack_from('<I', d, 0x3C)[0]
     out = []
@@ -177,6 +178,7 @@ def _pick_pin(d, strs, cand):
 
 def analyze(apk_path, progress=None):
     aes_consts, pins = set(), set()
+    errors = []  # erreurs de lecture par DEX, signalées à l'utilisateur au lieu d'être ignorées
     saw_aes = saw_pin = False
     hex32 = re.compile(r'^[0-9a-fA-F]{32}$')
     six = re.compile(r'^\d{6}$')
@@ -204,8 +206,8 @@ def analyze(apk_path, progress=None):
                             pin = _pick_pin(d, strs, cand)
                             if pin:
                                 pins.add(pin)
-            except Exception:
-                pass
+            except Exception as e:
+                errors.append(f"{name} : {type(e).__name__} : {e}")
             if progress:
                 progress(2 + 96 * (base + span))
     if progress:
@@ -215,11 +217,12 @@ def analyze(apk_path, progress=None):
         'fixed_pin': pins.pop() if len(pins) == 1 else None,
         'saw_aes': saw_aes,
         'saw_pin': saw_pin,
+        'errors': errors,
     }
 
 
 def _show(code):
-    title = "===== CODE DU MODE DEVELOPPEUR DE VOTRE DECODEUR ====="
+    title = "===== CODE DU MODE DÉVELOPPEUR DE VOTRE DÉCODEUR ====="
     print(title)
     print(code.center(len(title)))
     print("=" * len(title))
@@ -230,7 +233,7 @@ def _clean_path(p):
 def _ask_apk():
     while True:
         try:
-            p = input("Chemin absolu de l'APK parametres de votre decodeur : ")
+            p = input("Chemin absolu de l'APK Paramètres de votre décodeur : ")
         except (EOFError, KeyboardInterrupt):
             return None
         p = _clean_path(p)
@@ -238,21 +241,26 @@ def _ask_apk():
             return None
         if os.path.isfile(p):
             return p
-        print("Fichier introuvable. Reessaie, ou Entree pour quitter.")
+        print("Fichier introuvable. Réessayez, ou Entrée pour quitter.")
 
 def _pause():
     try:
-        input("\nAppuie sur Entree pour quitter...")
+        input("\nAppuyez sur Entrée pour quitter...")
     except (EOFError, KeyboardInterrupt):
         pass
 
 def main():
+    # Évite les caractères mal affichés (accents) sous Windows quand la sortie n'est pas en UTF-8.
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except (AttributeError, ValueError):
+        pass
     apk = _clean_path(sys.argv[1]) if len(sys.argv) > 1 else None
     if not apk or not os.path.isfile(apk):
-        print("Information : avant d'utiliser ce script vous devez avoir l'APK des parametres "
-              "de votre decodeur, vous pouvez la recuperer via un explorateur de fichier.")
-        print("Si le script ne fonctionne pas ou n'affiche aucun code pour votre modele, vous "
-              "pouvez ouvrir une issue sur GitHub. Creez un compte GitHub (gratuit) ou connectez-"
+        print("Information : avant d'utiliser ce script vous devez avoir l'APK des Paramètres "
+              "de votre décodeur, vous pouvez la récupérer via un explorateur de fichiers.")
+        print("Si le script ne fonctionne pas ou n'affiche aucun code pour votre modèle, vous "
+              "pouvez ouvrir une issue sur GitHub. Créez un compte GitHub (gratuit) ou connectez-"
               "vous, puis rendez-vous sur :")
         print("https://github.com/dotkl3m/dev_mode_unlock/issues/new?template=retour-modele.md")
         apk = _ask_apk()
@@ -262,16 +270,16 @@ def main():
 
     try:
         r = analyze(apk)
-    except Exception:
-        print("APK illisible.")
+    except Exception as e:
+        print(f"APK illisible : {type(e).__name__} : {e}")
         _pause(); return
 
     if r['aes_const']:
         try:
-            serial = input("Numero de serie du decodeur : ").strip()
+            serial = input("Numéro de série du décodeur : ").strip()
         except (EOFError, KeyboardInterrupt):
             serial = ""
-        code = compute_pin(serial, r['aes_const']) if serial else "(numero de serie manquant)"
+        code = compute_pin(serial, r['aes_const']) if serial else "(numéro de série manquant)"
     elif r['fixed_pin']:
         code = r['fixed_pin']
     elif r['saw_aes']:
@@ -280,6 +288,12 @@ def main():
         code = "(code introuvable)"
     else:
         code = "(aucun code)"
+
+    # Si le script n'a pas trouvé de code, on affiche les erreurs de lecture rencontrées.
+    if code.startswith("(") and r['errors']:
+        print("Erreurs rencontrées pendant l'analyse :")
+        for err in r['errors'][:5]:
+            print("  - " + err)
 
     _show(code)
     _pause()
