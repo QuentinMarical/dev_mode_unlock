@@ -2,3 +2,8 @@ bin/
 obj/
 __pycache__/
 *.pyc
+build/
+.gradle/
+local.properties
+.idea/
+*.iml
